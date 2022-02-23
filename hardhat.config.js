@@ -1,4 +1,5 @@
 require('@ericnordelo/hardhat-upgrade');
+require('@tenderly/hardhat-tenderly');
 require('@nomiclabs/hardhat-ethers');
 require('@nomiclabs/hardhat-waffle');
 require('@nomiclabs/hardhat-web3');
@@ -14,6 +15,8 @@ const MNEMONIC = process.env.MNEMONIC;
 const PRIVATE_KEY = process.env.PRIVATE_KEY;
 const MUMBAI_RPC_URL = process.env.MUMBAI_RPC_URL;
 const INFURA_API_KEY = process.env.INFURA_API_KEY;
+const INFURA_POLYGON_RPC_URL = process.env.INFURA_POLYGON_RPC_URL;
+const INFURA_BSC_RPC_URL = process.env.INFURA_BSC_RPC_URL;
 
 module.exports = {
   networks: {
@@ -32,14 +35,35 @@ module.exports = {
       url: `https://ropsten.infura.io/v3/${INFURA_API_KEY}`,
       accounts: { mnemonic: MNEMONIC },
     },
+    bsctestnet: {
+      chainId: 97,
+      url: 'https://data-seed-prebsc-1-s1.binance.org:8545',
+      gasPrice: 20000000000,
+      accounts: { mnemonic: MNEMONIC },
+      tags: ['testnet'],
+    },
     mumbai: {
       url: MUMBAI_RPC_URL,
       accounts: [PRIVATE_KEY],
       tags: ['testnet'],
     },
+    polygon: {
+      url: INFURA_POLYGON_RPC_URL,
+      accounts: [PRIVATE_KEY],
+      tags: ['mainnet'],
+    },
+    bsc: {
+      url: INFURA_BSC_RPC_URL,
+      accounts: [PRIVATE_KEY],
+      tags: ['mainnet'],
+    },
   },
   upgradeable: {
-    uups: ['PodManager'],
+    uups: ['NFTAuthenticator'],
+  },
+  tenderly: {
+    project: 'beckett',
+    username: 'ericnordelo',
   },
   namedAccounts: {
     deployer: 0,

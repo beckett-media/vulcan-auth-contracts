@@ -11,7 +11,7 @@ artifacts
 coverage/
 coverage.json
 
-deployments/
+
 
 .vscode/
 build/
