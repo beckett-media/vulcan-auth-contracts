@@ -1,8 +1,10 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.4;
+pragma solidity ^0.8.9;
 
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
+import "./Structs.sol";
 
 /**
  * @title Smart contract where authentication data is stored
@@ -11,6 +13,29 @@ import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
  */
 contract NFTAuthenticator is UUPSUpgradeable, OwnableUpgradeable {
     /* solhint-disable no-empty-blocks */
+
+    /**
+     * @dev The two posible state of an NFT
+     * @param UNAUTHENTICATED Whether the NFT has not been authenticated yet
+     * @param AUTHENTICATED Whether the NFT has been authenticated already
+     */
+    enum NFTStates {
+        UNAUTHENTICATED,
+        AUTHENTICATED
+    }
+
+    /**
+     * @dev A mapping to store the current state of one NFT by protocolId
+     *      (protocolId = keccak256(abi.encode(collection, tokenId)))
+     */
+    mapping(bytes32 => NFTStates) private _nftAuthenticationState;
+
+    /**
+     * @dev emitted when owner authenticates ERC721 tokens
+     * @param tokens the tokens to authenticate
+     * @param statuses whether the tokens (by index) were authenticated or not
+     */
+    event ERC721TokensAuthenticated(ERC721Token[] tokens, bool[] statuses);
 
     /**
      * @dev The initializer modifier is to avoid someone initializing
@@ -26,6 +51,85 @@ contract NFTAuthenticator is UUPSUpgradeable, OwnableUpgradeable {
         __UUPSUpgradeable_init();
     }
 
-    /// @dev override to validate ownership when attempting to upgrade
+    /**
+     * @notice getter to query if a token is authenticated
+     * @dev returns false if the token was burned
+     * @param token_ the information of the token to query (collection and token id)
+     * @return authenticated whether the token is authenticated or not
+     */
+    function isAuthenticated(ERC721Token calldata token_) external view returns (bool authenticated) {
+        // validate existence of the token
+        if (!_exists(token_)) {
+            return false;
+        }
+
+        bytes32 protocolId = keccak256(abi.encode(token_.collection, token_.tokenId));
+
+        return _nftAuthenticationState[protocolId] == NFTStates.AUTHENTICATED;
+    }
+
+    /**
+     * @notice Allows authentication in batches of ERC721 NFTs
+     * @dev The token should exists to be authenticated
+     * @param tokens_ The list of tokens to be potentially authenticated
+     */
+    function authenticateERC721Tokens(ERC721Token[] calldata tokens_) external onlyOwner {
+        require(tokens_.length > 0, "Empty list");
+
+        // an array of statuses (whether the token could be authenticated or not)
+        bool[] memory statuses = new bool[](tokens_.length);
+
+        // validate and authenticate each token
+        for (uint256 i; i < tokens_.length; i++) {
+            ERC721Token memory current = tokens_[i];
+
+            // tries to authenticate the token validating existence
+            bool wasAuthenticated = _authenticate(current);
+            statuses[i] = wasAuthenticated;
+        }
+
+        emit ERC721TokensAuthenticated(tokens_, statuses);
+    }
+
+    /**
+     * @dev Internal helper for authentications.
+     *      If the token exists save the state to the storage and returns true.
+     *      Returns false otherwise.
+     * @param token_ The information of the token (collection and tokenId)
+     * @return authenticated Whether the token could be authenticated or not
+     */
+    function _authenticate(ERC721Token memory token_) internal returns (bool authenticated) {
+        // validate existence of the token
+        if (!_exists(token_)) {
+            return false;
+        }
+
+        // if the token exists authenticate it
+        bytes32 protocolId = keccak256(abi.encode(token_.collection, token_.tokenId));
+        _nftAuthenticationState[protocolId] = NFTStates.AUTHENTICATED;
+
+        return true;
+    }
+
+    /**
+     * @dev Internal helper for checking token existence.
+     * @param token_ The information of the token (collection and tokenId)
+     * @return exists whether the token exists or not
+     */
+    function _exists(ERC721Token memory token_) internal view returns (bool exists) {
+        // validate existence of the token
+        // (try to get the owner from the collection)
+        try IERC721(token_.collection).ownerOf(token_.tokenId) returns (address owner) {
+            if (owner == address(0)) {
+                return false;
+            }
+        } catch {
+            return false;
+        }
+
+        return true;
+    }
+
+    /// @dev Override to validate ownership when attempting to upgrade
     function _authorizeUpgrade(address) internal view override onlyOwner {}
 }
