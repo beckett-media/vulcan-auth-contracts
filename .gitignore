@@ -1,0 +1,19 @@
+.DS_Store
+
+.env
+node_modules
+package-lock.json
+
+# hardhat files
+cache
+artifacts
+
+coverage/
+coverage.json
+
+deployments/
+
+.vscode/
+build/
+
+deprecated/
