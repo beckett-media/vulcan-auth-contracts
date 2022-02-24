@@ -21,9 +21,8 @@ describe('NFTAuthenticator', function () {
   describe('authentication', () => {
     it("can't authenticate from non-owner account", async () => {
       const { bob } = await getNamedAccounts();
-      const revertMessage = 'Ownable: caller is not the owner';
 
-      await expectRevert(this.authenticator.authenticateERC721Tokens([], { from: bob }), revertMessage);
+      await expectRevert.unspecified(this.authenticator.authenticateERC721Tokens([], { from: bob }));
     });
 
     it("can't authenticate empty list", async () => {
@@ -102,9 +101,8 @@ describe('NFTAuthenticator', function () {
   describe('upgradeability', () => {
     it("can't upgrade with wrong accounts", async () => {
       const { bob } = await getNamedAccounts();
-      const revertMessage = 'Ownable: caller is not the owner';
 
-      await expectRevert(this.authenticator.upgradeTo(constants.ZERO_ADDRESS, { from: bob }), revertMessage);
+      await expectRevert.unspecified(this.authenticator.upgradeTo(constants.ZERO_ADDRESS, { from: bob }));
     });
 
     it('can upgrade with right account', async () => {

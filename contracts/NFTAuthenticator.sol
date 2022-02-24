@@ -2,7 +2,7 @@
 pragma solidity ^0.8.9;
 
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "./Structs.sol";
 
@@ -11,8 +11,12 @@ import "./Structs.sol";
  * @dev This contract is upgradeable through UUPS (EIP-1822), and the
  *      the upgrader is the owner of the contract (ownership can be transferred)
  */
-contract NFTAuthenticator is UUPSUpgradeable, OwnableUpgradeable {
+contract NFTAuthenticator is UUPSUpgradeable, AccessControlUpgradeable {
     /* solhint-disable no-empty-blocks */
+
+    // roles
+    bytes32 private constant UPGRADER = keccak256("UPGRADER");
+    bytes32 private constant AUTHENTICATOR = keccak256("AUTHENTICATOR");
 
     /**
      * @dev The two posible state of an NFT
@@ -47,8 +51,13 @@ contract NFTAuthenticator is UUPSUpgradeable, OwnableUpgradeable {
      * @dev Initializes the contract (makes the deployer the owner by default)
      */
     function initialize() external initializer {
-        __Ownable_init();
+        __AccessControl_init();
         __UUPSUpgradeable_init();
+
+        // give all the power to the deployer to select who can control the contract
+        _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
+        _grantRole(UPGRADER, msg.sender);
+        _grantRole(AUTHENTICATOR, msg.sender);
     }
 
     /**
@@ -73,7 +82,7 @@ contract NFTAuthenticator is UUPSUpgradeable, OwnableUpgradeable {
      * @dev The token should exists to be authenticated
      * @param tokens_ The list of tokens to be potentially authenticated
      */
-    function authenticateERC721Tokens(ERC721Token[] calldata tokens_) external onlyOwner {
+    function authenticateERC721Tokens(ERC721Token[] calldata tokens_) external onlyRole(AUTHENTICATOR) {
         require(tokens_.length > 0, "Empty list");
 
         // an array of statuses (whether the token could be authenticated or not)
@@ -131,5 +140,5 @@ contract NFTAuthenticator is UUPSUpgradeable, OwnableUpgradeable {
     }
 
     /// @dev Override to validate ownership when attempting to upgrade
-    function _authorizeUpgrade(address) internal view override onlyOwner {}
+    function _authorizeUpgrade(address) internal view override onlyRole(UPGRADER) {}
 }
