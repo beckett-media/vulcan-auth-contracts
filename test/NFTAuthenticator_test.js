@@ -98,6 +98,28 @@ describe('NFTAuthenticator', function () {
     });
   });
 
+  describe('revoke mechanism', () => {
+    it("can't revoke from non-owner account", async () => {
+      const { bob } = await getNamedAccounts();
+
+      await expectRevert.unspecified(this.authenticator.revokeAuthentication([], { from: bob }));
+    });
+
+    it("can't revoke empty list", async () => {
+      const revertMessage = 'Empty list';
+
+      await expectRevert(this.authenticator.revokeAuthentication([]), revertMessage);
+    });
+
+    it('can revoke one token even if it does not exist', async () => {
+      const tokens = [{ collection: this.collection.address, tokenId: 5 }];
+
+      let tx = await this.authenticator.revokeAuthentication(tokens);
+
+      expectEvent(tx, 'AuthenticationRevoked');
+    });
+  });
+
   describe('upgradeability', () => {
     it("can't upgrade with wrong accounts", async () => {
       const { bob } = await getNamedAccounts();
