@@ -42,6 +42,12 @@ contract NFTAuthenticator is UUPSUpgradeable, AccessControlUpgradeable {
     event ERC721TokensAuthenticated(ERC721Token[] tokens, bool[] statuses);
 
     /**
+     * @dev emitted when owner revokes authentication for a list of tokens
+     * @param tokens the tokens revoked
+     */
+    event AuthenticationRevoked(ERC721Token[] tokens);
+
+    /**
      * @dev The initializer modifier is to avoid someone initializing
      *      the implementation contract after deployment (see proxy pattern for upgrades)
      */
@@ -101,6 +107,25 @@ contract NFTAuthenticator is UUPSUpgradeable, AccessControlUpgradeable {
     }
 
     /**
+     * @notice Allows revoking authentication in batches of ERC721 NFTs
+     * @dev If the token is not authenticated is just ignored
+     * @param tokens_ The list of tokens to be revoked
+     */
+    function revokeAuthentication(ERC721Token[] calldata tokens_) external onlyRole(AUTHENTICATOR) {
+        require(tokens_.length > 0, "Empty list");
+
+        // validate and authenticate each token
+        for (uint256 i; i < tokens_.length; i++) {
+            ERC721Token memory current = tokens_[i];
+
+            // revoke the authentication state
+            _revoke(current);
+        }
+
+        emit AuthenticationRevoked(tokens_);
+    }
+
+    /**
      * @dev Internal helper for authentications.
      *      If the token exists save the state to the storage and returns true.
      *      Returns false otherwise.
@@ -118,6 +143,16 @@ contract NFTAuthenticator is UUPSUpgradeable, AccessControlUpgradeable {
         _nftAuthenticationState[protocolId] = NFTStates.AUTHENTICATED;
 
         return true;
+    }
+
+    /**
+     * @dev Internal helper for revokes.
+     * @param token_ The information of the token (collection and tokenId)
+     */
+    function _revoke(ERC721Token memory token_) internal {
+        // revoke the token
+        bytes32 protocolId = keccak256(abi.encode(token_.collection, token_.tokenId));
+        _nftAuthenticationState[protocolId] = NFTStates.UNAUTHENTICATED;
     }
 
     /**
