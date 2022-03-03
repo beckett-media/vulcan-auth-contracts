@@ -35,14 +35,14 @@ contract NFTAuthenticator is UUPSUpgradeable, AccessControlUpgradeable {
     mapping(bytes32 => NFTStates) private _nftAuthenticationState;
 
     /**
-     * @dev emitted when owner authenticates ERC721 tokens
+     * @dev emitted when AUTHENTICATOR authenticates ERC721 tokens
      * @param tokens the tokens to authenticate
      * @param statuses whether the tokens (by index) were authenticated or not
      */
     event ERC721TokensAuthenticated(ERC721Token[] tokens, bool[] statuses);
 
     /**
-     * @dev emitted when owner revokes authentication for a list of tokens
+     * @dev emitted when AUTHENTICATOR revokes authentication for a list of tokens
      * @param tokens the tokens revoked
      */
     event AuthenticationRevoked(ERC721Token[] tokens);
